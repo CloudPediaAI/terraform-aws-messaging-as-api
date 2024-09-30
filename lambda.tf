@@ -1,7 +1,7 @@
 # create lambda package
 data "archive_file" "lambda_package" {
   type        = "zip"
-  source_file  = "send_email.js"
+  source_file  = "${path.module}/send_email.js"
   output_path = "send-email-lambda.zip"
 }
 
