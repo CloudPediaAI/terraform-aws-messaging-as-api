@@ -1,7 +1,7 @@
 variable "api_name" {
   type        = string
   default     = "messaging"
-  description = "Name for your API. Default is Messaging"
+  description = "Name for your API. Default value is 'Messaging'"
   # validation {
   #   condition = (can(regex("^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])\\.)*([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])$", var.api_name))
   #     && !strcontains(var.api_name, "..")
@@ -21,10 +21,11 @@ variable "api_version" {
 
 variable "projects" {
   type = map(object({
-    channels          = list(string)
-    from_email        = string
-    to_emails         = list(string)
-    need_api_endpoint = bool
+    channels               = list(string)
+    from_email             = string
+    to_emails              = list(string)
+    need_api_endpoint      = bool
+    verify_domain_identity = bool
   }))
   description = "List of Projects to build Messaging channels (Project details as Map(Object('Project-Name'={channels=['email','sms'], from_email='sender@domain.com', to_emails=['recepient1@domain.com','recepient2@domain.com'] need_api_endpoint=true}))"
 }

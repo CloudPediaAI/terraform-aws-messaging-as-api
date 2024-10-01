@@ -30,4 +30,8 @@ locals {
     for key, project_info in local.all_projects : key => project_info if(contains(project_info.channels, "email"))
   }
 
+  projects_need_domain_verification = {
+    for key, project_info in local.projects_need_email : key => project_info if(project_info.verify_domain_identity)
+  }
+
 }
