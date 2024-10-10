@@ -19,6 +19,7 @@ resource "aws_lambda_function" "send_email" {
 
   environment {
     variables = {
+      "CURRENT_REGION": data.aws_region.current.name,
       "PINPOINT_APP_ID" : aws_pinpoint_app.project[each.key].application_id,
       "FROM_EMAIL_ID" : each.value.from_email
     }

@@ -23,8 +23,25 @@ resource "aws_api_gateway_integration" "send_email_int" {
   resource_id             = aws_api_gateway_resource.send_email[each.key].id
   http_method             = each.value.http_method
   integration_http_method = local.http_methods.POST
-  type                    = local.integration_types.AWS_PROXY
+  type                    = local.integration_types.AWS
   uri                     = aws_lambda_function.send_email[each.key].invoke_arn
+
+  request_templates = {
+    "application/json" = <<EOF
+#set( $bodyStr = $util.parseJson($input.body) )
+#if( $bodyStr != "" )
+{
+    "httpMethod": "$context.httpMethod", 
+    "body": $input.body
+}
+#else
+{
+    "httpMethod": "ERROR-BODY"
+}
+#end
+EOF
+  }
+
 }
 
 resource "aws_api_gateway_method_response" "send_email_post_res_200" {
@@ -34,9 +51,16 @@ resource "aws_api_gateway_method_response" "send_email_post_res_200" {
   resource_id = aws_api_gateway_resource.send_email[each.key].id
   http_method = each.value.http_method
   status_code = "200"
+
+  //cors section
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true,
+    "method.response.header.Access-Control-Allow-Methods" = true,
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
 }
 
-resource "aws_api_gateway_integration_response" "send_email_int_res" {
+resource "aws_api_gateway_integration_response" "send_email_int_res_200" {
   for_each = aws_api_gateway_method_response.send_email_post_res_200
 
   rest_api_id = aws_api_gateway_rest_api.messaging[0].id
@@ -44,15 +68,83 @@ resource "aws_api_gateway_integration_response" "send_email_int_res" {
   http_method = each.value.http_method
   status_code = aws_api_gateway_method_response.send_email_post_res_200[each.key].status_code
 
-  # Transforms the backend JSON response to XML
-  response_templates = {
-    "application/json" = <<EOF
-#set($inputRoot = $input.path('$'))
-{
-    errorMessage: $inputRoot.body;
-}
-EOF
+  //cors
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'",
+    "method.response.header.Access-Control-Allow-Methods" = "'GET,OPTIONS,POST,PUT'",
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
   }
+
+#   response_templates = {
+#     "application/json" = <<EOF
+# #set($inputRoot = $input.path('$'))
+# {
+#     errorMessage: $inputRoot.body;
+# }
+# EOF
+#   }
+
+  depends_on = [
+    aws_api_gateway_method.send_email_post,
+    aws_api_gateway_integration.send_email_int
+  ]
+}
+
+resource "aws_api_gateway_method_response" "send_email_post_res_400" {
+  for_each = aws_api_gateway_integration.send_email_int
+
+  rest_api_id = aws_api_gateway_rest_api.messaging[0].id
+  resource_id = aws_api_gateway_resource.send_email[each.key].id
+  http_method = each.value.http_method
+  status_code = "400"
+}
+
+resource "aws_api_gateway_integration_response" "send_email_int_res_400" {
+  for_each = aws_api_gateway_method_response.send_email_post_res_400
+
+  selection_pattern = ".*\"errorCode\":400.*"
+  rest_api_id       = aws_api_gateway_rest_api.messaging[0].id
+  resource_id       = aws_api_gateway_resource.send_email[each.key].id
+  http_method       = each.value.http_method
+  status_code       = aws_api_gateway_method_response.send_email_post_res_400[each.key].status_code
+
+  response_templates = {
+    "application/json" = "$input.path('$.errorMessage')"
+  }
+
+  depends_on = [
+    aws_api_gateway_method.send_email_post,
+    aws_api_gateway_integration.send_email_int
+  ]
+}
+
+
+resource "aws_api_gateway_method_response" "send_email_post_res_500" {
+  for_each = aws_api_gateway_integration.send_email_int
+
+  rest_api_id = aws_api_gateway_rest_api.messaging[0].id
+  resource_id = aws_api_gateway_resource.send_email[each.key].id
+  http_method = each.value.http_method
+  status_code = "500"
+}
+
+resource "aws_api_gateway_integration_response" "send_email_int_res_500" {
+  for_each = aws_api_gateway_method_response.send_email_post_res_500
+
+  selection_pattern = ".*\"errorCode\":500.*"
+  rest_api_id       = aws_api_gateway_rest_api.messaging[0].id
+  resource_id       = aws_api_gateway_resource.send_email[each.key].id
+  http_method       = each.value.http_method
+  status_code       = aws_api_gateway_method_response.send_email_post_res_500[each.key].status_code
+
+  response_templates = {
+    "application/json" = "$input.path('$.errorMessage')"
+  }
+
+  depends_on = [
+    aws_api_gateway_method.send_email_post,
+    aws_api_gateway_integration.send_email_int
+  ]
 }
 
 resource "aws_lambda_permission" "send_email_post" {

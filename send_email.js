@@ -2,8 +2,7 @@
 const { PinpointClient, SendMessagesCommand } = require("@aws-sdk/client-pinpoint");
 
 async function sendEmail(toAddress, params) {
-  const REGION = "us-east-1";
-  const pinClient = new PinpointClient({ region: REGION });
+  const pinClient = new PinpointClient({ region: process.env.CURRENT_REGION });
 
   const { MessageResponse } = await pinClient.send(
     new SendMessagesCommand(params),
@@ -89,7 +88,8 @@ exports.handler = async function (event, context, callback) {
     }
 
     // get values from payload
-    var payload = JSON.parse(event.body);
+    // var payload = JSON.parse(event.body);
+    var payload = getParamValue(event, "body", true, errorCallback);
     var toAddress = getParamValue(payload, "recipient", true, errorCallback);
     var subject = getParamValue(payload, "subject", true, errorCallback);
     var body = getParamValue(payload, "body", true, errorCallback);
@@ -130,7 +130,6 @@ exports.handler = async function (event, context, callback) {
     const res = await sendEmail(toAddress, params);
     successCallback(res);
   } catch (err) {
-    errorCallback(err);
+    errorCallback(err, 500);
   }
-  return;
 };
