@@ -13,6 +13,27 @@ variable "api_name" {
   # }
 }
 
+variable "api_domain_name" {
+  type        = string
+  default     = "null"
+  description = "Domain name to configure URL for the messaging API"
+  validation {
+    condition = (can(regex("^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])\\.)*([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])$", var.api_domain_name))
+      && !strcontains(var.api_domain_name, "..")
+      && !startswith(var.api_domain_name, "xn--")
+      && !startswith(var.api_domain_name, "sthree-")
+      && !endswith(var.api_domain_name, "-s3alias")
+    && !endswith(var.api_domain_name, "--ol-s3"))
+    error_message = "Provide a valid domain name."
+  }
+}
+
+variable "api_domain_hosted_zone_id" {
+  type        = string
+  default     = null
+  description = "Id of the Hosted Zone in Route 53.  This is not required if api_domain_name provided"
+}
+
 variable "api_version" {
   type        = string
   default     = "v1"

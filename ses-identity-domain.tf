@@ -18,14 +18,14 @@ resource "aws_ses_domain_identity" "domain" {
 }
 
 # retrieve Hosted Zone using Domain Name
-data "aws_route53_zone" "by_name" {
+data "aws_route53_zone" "domain_to_verify" {
   for_each = local.domains_to_verify
 
   name = each.key
 }
 
 resource "aws_route53_record" "verification" {
-  for_each = data.aws_route53_zone.by_name
+  for_each = data.aws_route53_zone.domain_to_verify
 
   zone_id = each.value.zone_id
   name    = "_amazonses.${each.value.id}"
@@ -35,8 +35,8 @@ resource "aws_route53_record" "verification" {
   records = [aws_ses_domain_identity.domain[each.key].verification_token]
 }
 
-resource "aws_ses_domain_identity_verification" "example_verification" {
-  for_each = data.aws_route53_zone.by_name
+resource "aws_ses_domain_identity_verification" "domain_verification" {
+  for_each = data.aws_route53_zone.domain_to_verify
 
   domain     = aws_ses_domain_identity.domain[each.key].id
   depends_on = [aws_route53_record.verification]

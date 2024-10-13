@@ -1,7 +1,7 @@
 // Import required AWS SDK clients and commands for Pinpoint functionalities
 const { PinpointClient, SendMessagesCommand } = require("@aws-sdk/client-pinpoint");
 
-async function sendEmail(toAddress, params) {
+async function sendEmail(toAddress, params, errorCallback) {
   const pinClient = new PinpointClient({ region: process.env.CURRENT_REGION });
 
   const { MessageResponse } = await pinClient.send(
@@ -9,17 +9,17 @@ async function sendEmail(toAddress, params) {
   );
 
   if (!MessageResponse) {
-    throw new Error("No message response.");
+    errorCallback(new Error("No message response."), 500);
   }
 
   if (!MessageResponse.Result) {
-    throw new Error("No message result.");
+    errorCallback(new Error("No message result."), 500);
   }
 
   const recipientResult = MessageResponse.Result[toAddress];
 
   if (recipientResult.StatusCode !== 200) {
-    throw new Error(recipientResult.StatusMessage);
+    errorCallback(new Error(recipientResult.StatusMessage), 400);
   } else {
     return recipientResult;
   }
@@ -34,7 +34,7 @@ function getParamValue(params, paramName, isRequired, errorCallback) {
     return paramValue;
   } else {
     if (isRequired) {
-      errorCallback(new Error("Value for <" + paramName + "> not provided"));
+      errorCallback(new Error("Value for <" + paramName + "> not provided"), 400);
     } else {
       return null;
     }
@@ -48,7 +48,7 @@ function getParamValueNumeric(params, paramName, isRequired, errorCallback) {
   }
   if (typeof paramValue != "number") {
     if (isRequired) {
-      errorCallback(new Error("Value for <" + paramName + "> not provided"));
+      errorCallback(new Error("Value for <" + paramName + "> not provided"), 400);
     } else {
       return null;
     }
@@ -127,7 +127,7 @@ exports.handler = async function (event, context, callback) {
       },
     };
 
-    const res = await sendEmail(toAddress, params);
+    const res = await sendEmail(toAddress, params, errorCallback);
     successCallback(res);
   } catch (err) {
     errorCallback(err, 500);

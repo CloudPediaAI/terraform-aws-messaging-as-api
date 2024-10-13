@@ -16,3 +16,8 @@ output "smtp_user_access_key" {
   value     = aws_iam_access_key.smtp_user
   sensitive = true
 }
+
+output "api_endpoints" {
+  value       = local.api_endpoints
+  description = "List of API endpoints created for messaging services"
+}

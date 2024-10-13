@@ -63,6 +63,54 @@ locals {
     ]
   ])
 
+  api_method_response_200_ids = flatten([
+    for key, value in aws_api_gateway_method_response.send_email_post_res_200 : [
+      {
+        id = aws_api_gateway_method_response.send_email_post_res_200[key].id
+      }
+    ]
+  ])
+
+  api_method_response_400_ids = flatten([
+    for key, value in aws_api_gateway_method_response.send_email_post_res_400 : [
+      {
+        id = aws_api_gateway_method_response.send_email_post_res_400[key].id
+      }
+    ]
+  ])
+
+  api_method_response_500_ids = flatten([
+    for key, value in aws_api_gateway_method_response.send_email_post_res_500 : [
+      {
+        id = aws_api_gateway_method_response.send_email_post_res_500[key].id
+      }
+    ]
+  ])
+
+  api_integration_response_200_ids = flatten([
+    for key, value in aws_api_gateway_integration_response.send_email_int_res_200 : [
+      {
+        id = aws_api_gateway_integration_response.send_email_int_res_200[key].id
+      }
+    ]
+  ])
+
+  api_integration_response_400_ids = flatten([
+    for key, value in aws_api_gateway_integration_response.send_email_int_res_400 : [
+      {
+        id = aws_api_gateway_integration_response.send_email_int_res_400[key].id
+      }
+    ]
+  ])
+
+  api_integration_response_500_ids = flatten([
+    for key, value in aws_api_gateway_integration_response.send_email_int_res_500 : [
+      {
+        id = aws_api_gateway_integration_response.send_email_int_res_500[key].id
+      }
+    ]
+  ])
+
 }
 
 resource "aws_api_gateway_deployment" "main_deploy" {
@@ -80,8 +128,8 @@ resource "aws_api_gateway_deployment" "main_deploy" {
     #       It will stabilize to only change when resources change afterwards.
     redeployment = sha1(jsonencode([
       local.api_resource_ids,
-      local.api_method_ids,
-      local.api_integration_ids
+      local.api_method_ids, local.api_method_response_200_ids, local.api_method_response_400_ids, local.api_method_response_500_ids,
+      local.api_integration_ids, local.api_integration_response_200_ids, local.api_integration_response_200_ids, local.api_integration_response_200_ids,
     ]))
   }
 
@@ -91,21 +139,21 @@ resource "aws_api_gateway_deployment" "main_deploy" {
 }
 
 resource "aws_api_gateway_stage" "prod" {
-  count = (length(local.projects_need_api) > 0) ? 1 : 0
+  count = (local.create_custom_domain) ? 1 : 0
 
   deployment_id = aws_api_gateway_deployment.main_deploy[0].id
   rest_api_id   = aws_api_gateway_rest_api.messaging[0].id
   stage_name    = "prod_${var.api_version}"
 }
 
-# resource "aws_api_gateway_base_path_mapping" "prod" {
-#   count = (local.create_custom_domain) ? 1 : 0
+resource "aws_api_gateway_base_path_mapping" "prod" {
+  count = (local.create_custom_domain) ? 1 : 0
 
-#   api_id      = aws_api_gateway_rest_api.main.id
-#   stage_name  = aws_api_gateway_stage.prod.stage_name
-#   domain_name = aws_api_gateway_domain_name.api[0].domain_name
-#   base_path   = var.api_version
-# }
+  api_id      = aws_api_gateway_rest_api.messaging[0].id
+  stage_name  = aws_api_gateway_stage.prod[0].stage_name
+  domain_name = aws_api_gateway_domain_name.api[0].domain_name
+  base_path   = var.api_version
+}
 
 # count         = (var.cognito_user_pool_arns != null && length(var.cognito_user_pool_arns) > 0) ? 1 : 0
 # resource "aws_api_gateway_authorizer" "cognito" {
