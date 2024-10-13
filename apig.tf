@@ -23,7 +23,7 @@ locals {
 }
 
 resource "aws_api_gateway_rest_api" "messaging" {
-  count = (length(local.projects_need_api) > 0) ? 1 : 0
+  count = local.create_api_gateway ? 1 : 0
 
   name = "${var.api_name}-api"
   tags = var.tags
@@ -114,7 +114,7 @@ locals {
 }
 
 resource "aws_api_gateway_deployment" "main_deploy" {
-  count = (length(local.projects_need_api) > 0) ? 1 : 0
+  count = local.create_api_gateway ? 1 : 0
 
   rest_api_id = aws_api_gateway_rest_api.messaging[0].id
 
@@ -139,7 +139,7 @@ resource "aws_api_gateway_deployment" "main_deploy" {
 }
 
 resource "aws_api_gateway_stage" "prod" {
-  count = (local.create_custom_domain) ? 1 : 0
+  count = local.create_api_gateway ? 1 : 0
 
   deployment_id = aws_api_gateway_deployment.main_deploy[0].id
   rest_api_id   = aws_api_gateway_rest_api.messaging[0].id
@@ -147,7 +147,7 @@ resource "aws_api_gateway_stage" "prod" {
 }
 
 resource "aws_api_gateway_base_path_mapping" "prod" {
-  count = (local.create_custom_domain) ? 1 : 0
+  count = local.create_custom_domain ? 1 : 0
 
   api_id      = aws_api_gateway_rest_api.messaging[0].id
   stage_name  = aws_api_gateway_stage.prod[0].stage_name
