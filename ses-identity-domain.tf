@@ -1,13 +1,13 @@
 locals {
   valid_from_emails = [for p in local.projects_need_email : p.from_email]
-  valid_to_emails   = flatten([for p in local.projects_need_email : p.to_emails])
+  valid_to_emails   = flatten([for p in local.projects_need_email : (p.to_emails != null) ? p.to_emails : []])
   email_identities  = toset(distinct(concat(local.valid_from_emails, local.valid_to_emails)))
 
   valid_domains     = [for p in local.projects_need_email : split("@", p.from_email)[1]]
   domain_identities = toset(distinct(local.valid_domains))
 
-  valid_domains_to_verify     = [for p in local.projects_need_domain_verification : split("@", p.from_email)[1]]
-  domains_to_verify = toset(distinct(local.valid_domains_to_verify))
+  valid_domains_to_verify = [for p in local.projects_need_domain_verification : split("@", p.from_email)[1]]
+  domains_to_verify       = toset(distinct(local.valid_domains_to_verify))
 }
 
 # create all Domain identities
