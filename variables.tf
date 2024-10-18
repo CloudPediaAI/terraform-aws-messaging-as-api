@@ -45,6 +45,7 @@ variable "projects" {
     channels               = list(string)
     from_email             = string
     to_emails              = list(string)
+    sms_origination_number = string
     need_api_endpoint      = bool
     verify_domain_identity = bool
   }))

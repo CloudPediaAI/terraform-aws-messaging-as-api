@@ -12,24 +12,27 @@ locals {
     for key, project_info in local.all_projects : key => project_info if(contains(project_info.channels, "sms"))
   }
 
-  # creating list of projects which requires API Endpoints
-  projects_need_api = {
-    for key, project_info in local.all_projects : key => project_info if(project_info.need_api_endpoint)
-  }
-
-  email_projects_need_api = {
-    for key, project_info in local.projects_need_api : key => project_info if(project_info.need_api_endpoint)
-  }
-
-  sms_projects_need_api = {
-    for key, project_info in local.projects_need_api : key => project_info if(project_info.need_api_endpoint)
-  }
-
   # creating list of projects which requires EMAIL channel
   projects_need_email = {
     for key, project_info in local.all_projects : key => project_info if(contains(project_info.channels, "email"))
   }
 
+  # creating list of projects which requires API Endpoints
+  projects_need_api = {
+    for key, project_info in local.all_projects : key => project_info if(project_info.need_api_endpoint)
+  }
+
+  # creating list of projects which requires both Email channel and API Endpoints
+  email_projects_need_api = {
+    for key, project_info in local.projects_need_api : key => project_info if(contains(project_info.channels, "email") && project_info.need_api_endpoint)
+  }
+
+  # creating list of projects which requires both SMS channel and API Endpoints
+  sms_projects_need_api = {
+    for key, project_info in local.projects_need_api : key => project_info if(contains(project_info.channels, "sms") && project_info.need_api_endpoint)
+  }
+
+  # creating list of projects which requires both Email channel and Domain Verification
   projects_need_domain_verification = {
     for key, project_info in local.projects_need_email : key => project_info if(project_info.verify_domain_identity)
   }
@@ -44,6 +47,7 @@ locals {
   custom_api_url  = (local.create_custom_domain) ? "https://${lower(var.api_name)}.${local.domain_name}/${var.api_version}" : null
   api_base_url    = local.create_api_gateway ? ((local.create_custom_domain) ? local.custom_api_url : aws_api_gateway_stage.prod[0].invoke_url) : ""
 
+  # preparing a list of send-email API endpoints
   api_endpoints_send_email = flatten([
     for key, value in local.email_projects_need_api : {
       "${key}" = {
@@ -53,6 +57,17 @@ locals {
     ]
   )
 
-  api_endpoints = concat(local.api_endpoints_send_email)
+  # preparing a list of send-sms API endpoints
+  api_endpoints_send_sms = flatten([
+    for key, value in local.sms_projects_need_api : {
+      "${key}" = {
+        "${key}-sms" : "${local.api_base_url}${aws_api_gateway_resource.send_sms[key].path}"
+      }
+    }
+    ]
+  )
+
+  # combining list of send-email and send-sms API endpoints
+  api_endpoints = concat(local.api_endpoints_send_email, local.api_endpoints_send_sms)
 
 }
