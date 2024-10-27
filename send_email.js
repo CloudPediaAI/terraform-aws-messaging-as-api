@@ -86,10 +86,9 @@ exports.handler = async function (event, context, callback) {
     if (httpMethod == "ERROR-BODY") {
       errorCallback(new Error("Request body is not a valid JSON"), 400);
     }
+    var payload = getParamValue(event, "body", true, errorCallback);
 
     // get values from payload
-    // var payload = JSON.parse(event.body);
-    var payload = getParamValue(event, "body", true, errorCallback);
     var toAddress = getParamValue(payload, "recipient", true, errorCallback);
     var subject = getParamValue(payload, "subject", true, errorCallback);
     var body = getParamValue(payload, "body", true, errorCallback);

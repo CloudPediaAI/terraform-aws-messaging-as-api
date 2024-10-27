@@ -30,6 +30,37 @@ resource "aws_lambda_function" "send_email" {
 }
 
 
+# create lambda package for register-number
+data "archive_file" "lambda_pkg_register_number" {
+  type        = "zip"
+  source_file  = "${path.module}/register_number.js"
+  output_path = "register-number-lambda.zip"
+}
+
+# create lambda for send-sms
+resource "aws_lambda_function" "register_number" {
+  for_each = local.sms_projects_need_api
+
+  function_name    = "${var.api_name}-${each.key}-register-number"
+  description      = "Lambda to validate and register phone number in Pinpoint"
+  filename         = "register-number-lambda.zip"
+  source_code_hash = data.archive_file.lambda_pkg_register_number.output_base64sha256
+  role             = aws_iam_role.lambda[each.key].arn
+  runtime          = "nodejs20.x"
+  handler          = "register_number.handler"
+  timeout          = 180
+
+  environment {
+    variables = {
+      "CURRENT_REGION": data.aws_region.current.name,
+      "PINPOINT_APP_ID" : aws_pinpoint_app.project[each.key].application_id,
+      "ORIGINATION_NUMBER" : each.value.sms_origination_number
+    }
+  }
+
+  tags = var.tags
+}
+
 # create lambda package for send-sms
 data "archive_file" "lambda_pkg_send_sms" {
   type        = "zip"

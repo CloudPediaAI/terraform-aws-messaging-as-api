@@ -51,7 +51,17 @@ locals {
   api_endpoints_send_email = flatten([
     for key, value in local.email_projects_need_api : {
       "${key}" = {
-        "${key}-email" : "${local.api_base_url}${aws_api_gateway_resource.send_email[key].path}"
+        "${key}-send-email" : "${local.api_base_url}${aws_api_gateway_resource.send_email[key].path}"
+      }
+    }
+    ]
+  )
+
+  # preparing a list of register-number API endpoints
+  api_endpoints_register_number = flatten([
+    for key, value in local.sms_projects_need_api : {
+      "${key}" = {
+        "${key}-register-number" : "${local.api_base_url}${aws_api_gateway_resource.register_number[key].path}"
       }
     }
     ]
@@ -61,13 +71,13 @@ locals {
   api_endpoints_send_sms = flatten([
     for key, value in local.sms_projects_need_api : {
       "${key}" = {
-        "${key}-sms" : "${local.api_base_url}${aws_api_gateway_resource.send_sms[key].path}"
+        "${key}-send-sms" : "${local.api_base_url}${aws_api_gateway_resource.send_sms[key].path}"
       }
     }
     ]
   )
 
   # combining list of send-email and send-sms API endpoints
-  api_endpoints = concat(local.api_endpoints_send_email, local.api_endpoints_send_sms)
+  api_endpoints = concat(local.api_endpoints_send_email, local.api_endpoints_register_number, local.api_endpoints_send_sms)
 
 }
