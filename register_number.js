@@ -76,14 +76,14 @@ exports.handler = async function (event, context, callback) {
         const pinClient = new PinpointClient({ region: process.env.CURRENT_REGION });
 
         console.log('Received event:', event);
-        const res = await validateNumber(pinClient, destinationNumber, firstName, lastName, source);
+        const res = await validateNumber(errorCallback, pinClient, destinationNumber, firstName, lastName, source);
         successCallback(res);
     } catch (err) {
         errorCallback(err, 500);
     }
 };
 
-async function validateNumber(pinClient, destinationNumber, firstName, lastName, source) {
+async function validateNumber(errorCallback, pinClient, destinationNumber, firstName, lastName, source) {
     var destinationNumber = destinationNumber;
     if (destinationNumber.length == 10) {
         destinationNumber = "+1" + destinationNumber;
@@ -98,18 +98,18 @@ async function validateNumber(pinClient, destinationNumber, firstName, lastName,
         const PhoneNumberValidateresponse = await pinClient.send(new PhoneNumberValidateCommand(params));
         console.log(PhoneNumberValidateresponse);
         if (PhoneNumberValidateresponse['NumberValidateResponse']['PhoneTypeCode'] == 0) {
-            await createEndpoint(PhoneNumberValidateresponse, firstName, lastName, source);
+            await createEndpoint(errorCallback, PhoneNumberValidateresponse, firstName, lastName, source);
 
         } else {
             console.log("Received a phone number that isn't capable of receiving "
                 + "SMS messages. No endpoint created.");
         }
     } catch (err) {
-        console.log(err);
+        errorCallback(err, 500);
     }
 }
 
-async function createEndpoint(pinClient, data, firstName, lastName, source) {
+async function createEndpoint(errorCallback, pinClient, data, firstName, lastName, source) {
     var destinationNumber = data['NumberValidateResponse']['CleansedPhoneNumberE164'];
     var endpointId = data['NumberValidateResponse']['CleansedPhoneNumberE164'].substring(1);
 
@@ -154,13 +154,13 @@ async function createEndpoint(pinClient, data, firstName, lastName, source) {
     try {
         const UpdateEndpointresponse = await pinClient.send(new UpdateEndpointCommand(params));
         console.log(UpdateEndpointresponse);
-        await sendConfirmation(destinationNumber);
+        await sendConfirmation(errorCallback, destinationNumber);
     } catch (err) {
-        console.log(err);
+        errorCallback(err, 500);
     }
 }
 
-async function sendConfirmation(pinClient, destinationNumber) {
+async function sendConfirmation(errorCallback, pinClient, destinationNumber) {
     var params = {
         ApplicationId: projectId,
         MessageRequest: {
@@ -183,6 +183,6 @@ async function sendConfirmation(pinClient, destinationNumber) {
         console.log("Message sent! "
             + SendMessagesCommandresponse['MessageResponse']['Result'][destinationNumber]['StatusMessage']);
     } catch (err) {
-        console.log(err);
+        errorCallback(err, 500);
     }
 }
