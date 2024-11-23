@@ -9,6 +9,7 @@ resource "aws_pinpoint_email_channel" "email" {
 
   application_id = aws_pinpoint_app.project[each.key].application_id
   from_address   = each.value.from_email
-  identity = aws_ses_email_identity.email[each.value.from_email].arn
+  # domain identify (if domain identity verification), if not then Email identity 
+  identity = (each.value.verify_domain_identity) ? aws_ses_domain_identity.domain[split("@", each.value.from_email)[1]].arn : aws_ses_email_identity.email[each.value.from_email].arn
   role_arn = aws_iam_role.pinpoint[each.key].arn
 }
